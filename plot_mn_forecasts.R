@@ -401,7 +401,7 @@ make_plot_all_gg <- function(loc) {
       data = ens_loc,
       aes(
         x = target_end_date, ymin = q25, ymax = q75,
-        group = reference_date, fill = "50% Confidence Interval"
+        group = reference_date, fill = "Uncertainty"
       ),
       alpha = 0.12
     ) +
@@ -428,7 +428,7 @@ make_plot_all_gg <- function(loc) {
       breaks = c("Actual % of ED Visits due to Influenza", "Forecasts"),
       values = c("Actual % of ED Visits due to Influenza" = "black", "Forecasts" = "steelblue")
     ) +
-    scale_fill_manual(NULL, values = c("50% Confidence Interval" = "steelblue")) +
+    scale_fill_manual(NULL, values = c("Uncertainty" = "steelblue")) +
     scale_x_date(
       limits      = c(season_start, season_end),
       date_breaks = "1 month", date_labels = "%b %Y"
@@ -473,7 +473,7 @@ make_plot_state_comparison <- function(loc) {
     geom_ribbon(
       data = ens_mn,
       aes(x = target_end_date, ymin = q25, ymax = q75,
-          group = reference_date, fill = "MN State 50% Forecast Interval"),
+          group = reference_date, fill = "MN State Uncertainty"),
       alpha = 0.10
     ) +
     # MN state ensemble mean (red)
@@ -487,42 +487,42 @@ make_plot_state_comparison <- function(loc) {
     geom_ribbon(
       data = ens_region,
       aes(x = target_end_date, ymin = q25, ymax = q75,
-          group = reference_date, fill = "50% Forecast Interval"),
+          group = reference_date, fill = "Uncertainty"),
       alpha = 0.12
     ) +
     # Region ensemble mean (blue)
     geom_line(
       data = ens_region,
       aes(x = target_end_date, y = q50,
-          group = reference_date, color = "Ensemble Mean Forecast"),
+          group = reference_date, color = "Forecast"),
       linewidth = 0.65
     ) +
     # Region actual (black)
     geom_line(
       data = act_region,
-      aes(x = target_end_date, y = observation, group = 1, color = "Observed Outcome"),
+      aes(x = target_end_date, y = observation, group = 1, color = "Actual % of ED Visits due to Influenza"),
       linewidth = 1.1
     ) +
     geom_point(
       data = act_region,
-      aes(x = target_end_date, y = observation, color = "Observed Outcome"),
+      aes(x = target_end_date, y = observation, color = "Actual % of ED Visits due to Influenza"),
       size = 1.8
     ) +
     scale_color_manual(
       NULL,
-      breaks = c("Observed Outcome", "Ensemble Mean Forecast", "MN State Ensemble Mean"),
+      breaks = c("Actual % of ED Visits due to Influenza", "Forecast", "MN State Ensemble Mean"),
       values = c(
-        "Observed Outcome"       = "black",
-        "Ensemble Mean Forecast" = "steelblue",
+        "Actual % of ED Visits due to Influenza"       = "black",
+        "Forecast" = "steelblue",
         "MN State Ensemble Mean" = "firebrick"
       )
     ) +
     scale_fill_manual(
       NULL,
-      breaks = c("50% Forecast Interval", "MN State 50% Forecast Interval"),
+      breaks = c("Uncertainty", "MN State Uncertainty"),
       values = c(
-        "50% Forecast Interval"          = "steelblue",
-        "MN State 50% Forecast Interval" = "firebrick"
+        "Uncertainty"          = "steelblue",
+        "MN State Uncertainty" = "firebrick"
       )
     ) +
     scale_x_date(
