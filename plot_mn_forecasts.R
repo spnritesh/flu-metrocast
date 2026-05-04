@@ -11,7 +11,7 @@ ensemble_dir <- file.path(project_dir, "model-output/epiENGAGE-ensemble_mean")
 mn_locations <- c("minnesota", "minneapolis", "st-paul", "duluth", "st-cloud", "rochester")
 
 location_labels <- c(
-  minnesota   = "Minnesota (State)",
+  minnesota   = "Minnesota",
   minneapolis = "Minneapolis HSA",
   `st-paul`   = "St. Paul HSA",
   duluth      = "Duluth HSA",
@@ -373,3 +373,71 @@ save_html(
   file = file.path(project_dir, "mn_flu_1week_ahead_2526.html")
 )
 message("Saved: mn_flu_1week_ahead_2526.html")
+
+# ── 8. Export all-horizon plots as PNGs ───────────────────────────────────────
+png_dir <- file.path(project_dir, "forecast_plots_png")
+dir.create(png_dir, showWarnings = FALSE)
+
+make_plot_all_gg <- function(loc) {
+
+  act_loc <- actual   |> filter(location == loc)
+  ens_loc <- ensemble |> filter(location == loc)
+
+  ggplot() +
+    geom_ribbon(
+      data = ens_loc,
+      aes(
+        x = target_end_date, ymin = q25, ymax = q75,
+        group = reference_date, fill = "50% Forecast Interval"
+      ),
+      alpha = 0.12
+    ) +
+    geom_line(
+      data = ens_loc,
+      aes(
+        x = target_end_date, y = q50,
+        group = reference_date, color = "Ensemble Mean Forecast"
+      ),
+      linewidth = 0.65
+    ) +
+    geom_line(
+      data = act_loc,
+      aes(x = target_end_date, y = observation, group = 1, color = "Observed Outcome"),
+      linewidth = 1.1
+    ) +
+    geom_point(
+      data = act_loc,
+      aes(x = target_end_date, y = observation, color = "Observed Outcome"),
+      size = 1.8
+    ) +
+    scale_color_manual(
+      NULL,
+      breaks = c("Observed Outcome", "Ensemble Mean Forecast"),
+      values = c("Observed Outcome" = "black", "Ensemble Mean Forecast" = "steelblue")
+    ) +
+    scale_fill_manual(NULL, values = c("50% Forecast Interval" = "steelblue")) +
+    scale_x_date(
+      limits      = c(season_start, season_end),
+      date_breaks = "1 month", date_labels = "%b %Y"
+    ) +
+    scale_y_continuous(labels = scales::label_number(suffix = "%")) +
+    labs(
+      title = location_labels[loc],
+      x     = NULL,
+      y     = "% ED Visits Due to Influenza"
+    ) +
+    theme_bw(base_size = 12) +
+    theme(
+      axis.text.x      = element_text(angle = 45, hjust = 1),
+      plot.title       = element_text(face = "bold"),
+      panel.grid.minor = element_blank()
+    )
+}
+
+message("Saving PNG exports to: ", png_dir)
+walk(mn_locations, function(loc) {
+  p   <- make_plot_all_gg(loc)
+  out <- file.path(png_dir, paste0(loc, "_all_horizons.png"))
+  ggsave(out, plot = p, width = 10, height = 4.5, dpi = 150)
+  message("  Saved: ", basename(out))
+})
