@@ -72,6 +72,17 @@ ensemble_1wk <- pivot_ensemble(ensemble_raw |> filter(horizon == 1))
 
 # ── 3. Shared plotly helpers ──────────────────────────────────────────────────
 
+# Push any trace whose name contains "50% Interval" to the bottom of the legend
+order_interval_last <- function(py) {
+  for (i in seq_along(py$x$data)) {
+    nm <- py$x$data[[i]]$name
+    if (!is.null(nm) && nchar(nm) > 0) {
+      py$x$data[[i]]$legendrank <- if (grepl("50%", nm)) 500L else 100L
+    }
+  }
+  py
+}
+
 # Remove duplicate legend entries that ggplotly creates for multi-group geoms
 dedup_legend <- function(py) {
   seen <- character(0)
@@ -195,7 +206,8 @@ make_plot_all <- function(loc) {
 
   ggplotly(p, tooltip = "text", width = 1050, height = 450) |>
     base_layout(make_vline_shapes(ens_loc$reference_date)) |>
-    dedup_legend()
+    dedup_legend() |>
+    order_interval_last()
 }
 
 # ── 5. 1-week-ahead plot with interval lines ──────────────────────────────────
@@ -316,7 +328,8 @@ make_plot_1wk <- function(loc) {
 
   py |>
     base_layout(make_vline_shapes(ens_loc$reference_date)) |>
-    dedup_legend()
+    dedup_legend() |>
+    order_interval_last()
 }
 
 # ── 6. Build all plots ────────────────────────────────────────────────────────
@@ -388,7 +401,7 @@ make_plot_all_gg <- function(loc) {
       data = ens_loc,
       aes(
         x = target_end_date, ymin = q25, ymax = q75,
-        group = reference_date, fill = "50% Forecast Interval"
+        group = reference_date, fill = "50% Confidence Interval"
       ),
       alpha = 0.12
     ) +
@@ -396,26 +409,26 @@ make_plot_all_gg <- function(loc) {
       data = ens_loc,
       aes(
         x = target_end_date, y = q50,
-        group = reference_date, color = "Ensemble Mean Forecast"
+        group = reference_date, color = "Forecasts"
       ),
       linewidth = 0.65
     ) +
     geom_line(
       data = act_loc,
-      aes(x = target_end_date, y = observation, group = 1, color = "Observed Outcome"),
+      aes(x = target_end_date, y = observation, group = 1, color = "Actual % of ED Visits due to Influenza"),
       linewidth = 1.1
     ) +
     geom_point(
       data = act_loc,
-      aes(x = target_end_date, y = observation, color = "Observed Outcome"),
+      aes(x = target_end_date, y = observation, color = "Actual % of ED Visits due to Influenza"),
       size = 1.8
     ) +
     scale_color_manual(
       NULL,
-      breaks = c("Observed Outcome", "Ensemble Mean Forecast"),
-      values = c("Observed Outcome" = "black", "Ensemble Mean Forecast" = "steelblue")
+      breaks = c("Actual % of ED Visits due to Influenza", "Forecasts"),
+      values = c("Actual % of ED Visits due to Influenza" = "black", "Forecasts" = "steelblue")
     ) +
-    scale_fill_manual(NULL, values = c("50% Forecast Interval" = "steelblue")) +
+    scale_fill_manual(NULL, values = c("50% Confidence Interval" = "steelblue")) +
     scale_x_date(
       limits      = c(season_start, season_end),
       date_breaks = "1 month", date_labels = "%b %Y"
@@ -431,7 +444,8 @@ make_plot_all_gg <- function(loc) {
       axis.text.x      = element_text(angle = 45, hjust = 1),
       plot.title       = element_text(face = "bold"),
       panel.grid.minor = element_blank()
-    )
+    ) +
+    guides(color = guide_legend(order = 1), fill = guide_legend(order = 2))
 }
 
 message("Saving PNG exports to: ", png_dir)
