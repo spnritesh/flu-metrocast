@@ -448,6 +448,8 @@ make_plot_all_gg <- function(loc) {
     guides(color = guide_legend(order = 1), fill = guide_legend(order = 2))
 }
 
+hsa_locations <- c("minneapolis", "st-paul", "duluth", "st-cloud", "rochester")
+
 message("Saving PNG exports to: ", png_dir)
 walk(mn_locations, function(loc) {
   p   <- make_plot_all_gg(loc)
@@ -455,3 +457,134 @@ walk(mn_locations, function(loc) {
   ggsave(out, plot = p, width = 10, height = 4.5, dpi = 150)
   message("  Saved: ", basename(out))
 })
+
+# ── 9. State comparison plots (HSA vs. MN state) ──────────────────────────────
+state_comp_dir <- file.path(png_dir, "state_comparison")
+dir.create(state_comp_dir, showWarnings = FALSE)
+
+ens_mn <- ensemble |> filter(location == "minnesota")
+
+make_plot_state_comparison <- function(loc) {
+  act_region <- actual   |> filter(location == loc)
+  ens_region <- ensemble |> filter(location == loc)
+
+  ggplot() +
+    # MN state 50% ribbon (red)
+    geom_ribbon(
+      data = ens_mn,
+      aes(x = target_end_date, ymin = q25, ymax = q75,
+          group = reference_date, fill = "MN State 50% Forecast Interval"),
+      alpha = 0.10
+    ) +
+    # MN state ensemble mean (red)
+    geom_line(
+      data = ens_mn,
+      aes(x = target_end_date, y = q50,
+          group = reference_date, color = "MN State Ensemble Mean"),
+      linewidth = 0.55
+    ) +
+    # Region 50% ribbon (blue)
+    geom_ribbon(
+      data = ens_region,
+      aes(x = target_end_date, ymin = q25, ymax = q75,
+          group = reference_date, fill = "50% Forecast Interval"),
+      alpha = 0.12
+    ) +
+    # Region ensemble mean (blue)
+    geom_line(
+      data = ens_region,
+      aes(x = target_end_date, y = q50,
+          group = reference_date, color = "Ensemble Mean Forecast"),
+      linewidth = 0.65
+    ) +
+    # Region actual (black)
+    geom_line(
+      data = act_region,
+      aes(x = target_end_date, y = observation, group = 1, color = "Observed Outcome"),
+      linewidth = 1.1
+    ) +
+    geom_point(
+      data = act_region,
+      aes(x = target_end_date, y = observation, color = "Observed Outcome"),
+      size = 1.8
+    ) +
+    scale_color_manual(
+      NULL,
+      breaks = c("Observed Outcome", "Ensemble Mean Forecast", "MN State Ensemble Mean"),
+      values = c(
+        "Observed Outcome"       = "black",
+        "Ensemble Mean Forecast" = "steelblue",
+        "MN State Ensemble Mean" = "firebrick"
+      )
+    ) +
+    scale_fill_manual(
+      NULL,
+      breaks = c("50% Forecast Interval", "MN State 50% Forecast Interval"),
+      values = c(
+        "50% Forecast Interval"          = "steelblue",
+        "MN State 50% Forecast Interval" = "firebrick"
+      )
+    ) +
+    scale_x_date(
+      limits      = c(season_start, season_end),
+      date_breaks = "1 month", date_labels = "%b %Y"
+    ) +
+    scale_y_continuous(labels = scales::label_number(suffix = "%")) +
+    labs(
+      title    = paste0(location_labels[loc], " vs. Minnesota State"),
+      subtitle = "Blue: HSA forecast  |  Red: MN state forecast  |  Black: HSA observed",
+      x        = NULL,
+      y        = "% ED Visits Due to Influenza"
+    ) +
+    theme_bw(base_size = 12) +
+    theme(
+      axis.text.x      = element_text(angle = 45, hjust = 1),
+      plot.title       = element_text(face = "bold"),
+      plot.subtitle    = element_text(size = 10, color = "#555555"),
+      panel.grid.minor = element_blank()
+    ) +
+    guides(color = guide_legend(order = 1), fill = guide_legend(order = 2))
+}
+
+message("Saving state comparison PNGs...")
+walk(hsa_locations, function(loc) {
+  p   <- make_plot_state_comparison(loc)
+  out <- file.path(state_comp_dir, paste0(loc, "_vs_mn_state.png"))
+  ggsave(out, plot = p, width = 10, height = 4.5, dpi = 150)
+  message("  Saved: ", basename(out))
+})
+
+# ── 10. Region actuals (all locations, observed only) ─────────────────────────
+region_actuals_dir <- file.path(png_dir, "region_actuals")
+dir.create(region_actuals_dir, showWarnings = FALSE)
+
+p_actuals <- actual |>
+  mutate(label = factor(location_labels[location],
+                        levels = location_labels[mn_locations])) |>
+  ggplot(aes(x = target_end_date, y = observation,
+             color = label, group = label)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 1.6) +
+  scale_color_brewer("Location", palette = "Dark2") +
+  scale_x_date(
+    limits      = c(season_start, season_end),
+    date_breaks = "1 month", date_labels = "%b %Y"
+  ) +
+  scale_y_continuous(labels = scales::label_number(suffix = "%")) +
+  labs(
+    title = "2025–2026 Flu Season — Observed % ED Visits by Region",
+    x     = NULL,
+    y     = "% ED Visits Due to Influenza"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    axis.text.x      = element_text(angle = 45, hjust = 1),
+    plot.title       = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+ggsave(
+  file.path(region_actuals_dir, "all_regions_observed.png"),
+  plot = p_actuals, width = 10, height = 5, dpi = 150
+)
+message("Saved: all_regions_observed.png")
