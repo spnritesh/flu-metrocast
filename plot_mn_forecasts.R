@@ -393,9 +393,14 @@ dir.create(png_dir, showWarnings = FALSE)
 
 make_plot_all_gg <- function(loc) {
 
-  act_loc <- actual   |> filter(location == loc)
-  ens_loc <- ensemble |> filter(location == loc)
-  act_mn  <- actual   |> filter(location == "minnesota")
+  act_loc   <- actual   |> filter(location == loc)
+  ens_loc   <- ensemble |> filter(location == loc)
+  act_mn    <- actual   |> filter(location == "minnesota")
+  region_nm <- location_labels[loc]
+
+  lbl_actual  <- paste0(region_nm, " Actual % of ED Visits due to Influenza")
+  lbl_forecast <- paste0(region_nm, " Forecasts")
+  lbl_uncert  <- paste0(region_nm, " Forecast Uncertainty")
 
   # Build the MN state actual layer only for HSA locations
   mn_layer <- if (loc != "minnesota") {
@@ -413,17 +418,14 @@ make_plot_all_gg <- function(loc) {
   }
 
   color_breaks <- if (loc != "minnesota") {
-    c("Actual % of ED Visits due to Influenza",
-      "MN State Actual % of ED Visits due to Influenza",
-      "Forecasts")
+    c(lbl_actual, "MN State Actual % of ED Visits due to Influenza", lbl_forecast)
   } else {
-    c("Actual % of ED Visits due to Influenza", "Forecasts")
+    c(lbl_actual, lbl_forecast)
   }
 
-  color_values <- c(
-    "Actual % of ED Visits due to Influenza"           = "black",
-    "MN State Actual % of ED Visits due to Influenza"  = "black",
-    "Forecasts"                                        = "steelblue"
+  color_values <- setNames(
+    c("black", "black", "steelblue"),
+    c(lbl_actual, "MN State Actual % of ED Visits due to Influenza", lbl_forecast)
   )
 
   ggplot() +
@@ -431,7 +433,7 @@ make_plot_all_gg <- function(loc) {
       data = ens_loc,
       aes(
         x = target_end_date, ymin = q25, ymax = q75,
-        group = reference_date, fill = "Uncertainty"
+        group = reference_date, fill = lbl_uncert
       ),
       alpha = 0.12
     ) +
@@ -439,7 +441,7 @@ make_plot_all_gg <- function(loc) {
       data = ens_loc,
       aes(
         x = target_end_date, y = q50,
-        group = reference_date, color = "Forecasts"
+        group = reference_date, color = lbl_forecast
       ),
       linewidth = 0.65
     ) +
@@ -447,17 +449,17 @@ make_plot_all_gg <- function(loc) {
     geom_line(
       data = act_loc,
       aes(x = target_end_date, y = observation, group = 1,
-          color = "Actual % of ED Visits due to Influenza"),
+          color = lbl_actual),
       linewidth = 1.1
     ) +
     geom_point(
       data = act_loc,
       aes(x = target_end_date, y = observation,
-          color = "Actual % of ED Visits due to Influenza"),
+          color = lbl_actual),
       size = 1.8
     ) +
     scale_color_manual(NULL, breaks = color_breaks, values = color_values) +
-    scale_fill_manual(NULL, values = c("Uncertainty" = "steelblue")) +
+    scale_fill_manual(NULL, values = setNames("steelblue", lbl_uncert)) +
     scale_x_date(
       limits      = c(season_start, season_end),
       date_breaks = "1 month", date_labels = "%b %Y"
