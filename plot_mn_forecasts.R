@@ -603,7 +603,7 @@ p_actuals <- actual |>
   ) +
   scale_y_continuous(labels = scales::label_number(suffix = "%")) +
   labs(
-    title = "2025–2026 Flu Season — Observed % ED Visits by Region",
+    title = "Actual % ED Visits due to Influenza by Region",
     x     = NULL,
     y     = "% ED Visits Due to Influenza"
   ) +
