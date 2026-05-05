@@ -395,6 +395,36 @@ make_plot_all_gg <- function(loc) {
 
   act_loc <- actual   |> filter(location == loc)
   ens_loc <- ensemble |> filter(location == loc)
+  act_mn  <- actual   |> filter(location == "minnesota")
+
+  # Build the MN state actual layer only for HSA locations
+  mn_layer <- if (loc != "minnesota") {
+    list(
+      geom_line(
+        data     = act_mn,
+        aes(x = target_end_date, y = observation, group = 1,
+            color = "MN State Actual % of ED Visits due to Influenza"),
+        linetype  = "dotted",
+        linewidth = 1.0
+      )
+    )
+  } else {
+    list()
+  }
+
+  color_breaks <- if (loc != "minnesota") {
+    c("Actual % of ED Visits due to Influenza",
+      "MN State Actual % of ED Visits due to Influenza",
+      "Forecasts")
+  } else {
+    c("Actual % of ED Visits due to Influenza", "Forecasts")
+  }
+
+  color_values <- c(
+    "Actual % of ED Visits due to Influenza"           = "black",
+    "MN State Actual % of ED Visits due to Influenza"  = "black",
+    "Forecasts"                                        = "steelblue"
+  )
 
   ggplot() +
     geom_ribbon(
@@ -413,21 +443,20 @@ make_plot_all_gg <- function(loc) {
       ),
       linewidth = 0.65
     ) +
+    mn_layer +
     geom_line(
       data = act_loc,
-      aes(x = target_end_date, y = observation, group = 1, color = "Actual % of ED Visits due to Influenza"),
+      aes(x = target_end_date, y = observation, group = 1,
+          color = "Actual % of ED Visits due to Influenza"),
       linewidth = 1.1
     ) +
     geom_point(
       data = act_loc,
-      aes(x = target_end_date, y = observation, color = "Actual % of ED Visits due to Influenza"),
+      aes(x = target_end_date, y = observation,
+          color = "Actual % of ED Visits due to Influenza"),
       size = 1.8
     ) +
-    scale_color_manual(
-      NULL,
-      breaks = c("Actual % of ED Visits due to Influenza", "Forecasts"),
-      values = c("Actual % of ED Visits due to Influenza" = "black", "Forecasts" = "steelblue")
-    ) +
+    scale_color_manual(NULL, breaks = color_breaks, values = color_values) +
     scale_fill_manual(NULL, values = c("Uncertainty" = "steelblue")) +
     scale_x_date(
       limits      = c(season_start, season_end),
